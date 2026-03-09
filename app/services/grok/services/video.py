@@ -5,6 +5,7 @@ Grok video generation service.
 import asyncio
 import uuid
 import re
+import time
 from typing import Any, AsyncGenerator, AsyncIterable, Optional
 
 import orjson
@@ -1089,9 +1090,19 @@ class VideoStreamProcessor(BaseProcessor):
                             if self.upscale_on_finish:
                                 yield self._sse("正在对视频进行超分辨率\n")
                                 video_url = await self._upscale_video_url(video_url)
+                            render_started_at = time.perf_counter()
+                            logger.info(
+                                f"Video render pipeline started: video_url={video_url}, "
+                                f"thumbnail_url={thumbnail_url or '-'}, post_id={video_post_id or '-'}"
+                            )
                             dl_service = self._get_dl()
                             rendered = await dl_service.render_video(
                                 video_url, self.token, thumbnail_url
+                            )
+                            render_duration_ms = (time.perf_counter() - render_started_at) * 1000
+                            logger.info(
+                                f"Video render pipeline completed: rendered={rendered}, "
+                                f"post_id={video_post_id or '-'}, duration_ms={render_duration_ms:.2f}"
                             )
                             yield self._sse(rendered)
 
@@ -1307,9 +1318,19 @@ class VideoCollectProcessor(BaseProcessor):
                         if video_url:
                             if self.upscale_on_finish:
                                 video_url = await self._upscale_video_url(video_url)
+                            render_started_at = time.perf_counter()
+                            logger.info(
+                                f"Video collect render started: video_url={video_url}, "
+                                f"thumbnail_url={thumbnail_url or '-'}, post_id={fallback_video_id or '-'}"
+                            )
                             dl_service = self._get_dl()
                             content = await dl_service.render_video(
                                 video_url, self.token, thumbnail_url
+                            )
+                            render_duration_ms = (time.perf_counter() - render_started_at) * 1000
+                            logger.info(
+                                f"Video collect render completed: content={content}, "
+                                f"post_id={fallback_video_id or '-'}, duration_ms={render_duration_ms:.2f}"
                             )
                             self.video_post_id = fallback_video_id
                             logger.info(f"Video generated: {video_url} (post_id={fallback_video_id})")
@@ -1375,9 +1396,19 @@ class VideoCollectProcessor(BaseProcessor):
             if asset_video_path:
                 if self.upscale_on_finish:
                     asset_video_path = await self._upscale_video_url(asset_video_path)
+                render_started_at = time.perf_counter()
+                logger.info(
+                    f"Video assets fallback render started: video_url={asset_video_path}, "
+                    f"thumbnail_url={(asset_thumb_path or fallback_thumb or '-')}, post_id={fallback_video_id}"
+                )
                 dl_service = self._get_dl()
                 content = await dl_service.render_video(
                     asset_video_path, self.token, asset_thumb_path or fallback_thumb
+                )
+                render_duration_ms = (time.perf_counter() - render_started_at) * 1000
+                logger.info(
+                    f"Video assets fallback render completed: content={content}, "
+                    f"post_id={fallback_video_id}, duration_ms={render_duration_ms:.2f}"
                 )
                 response_id = response_id or f"chatcmpl-{uuid.uuid4().hex[:24]}"
                 logger.info(

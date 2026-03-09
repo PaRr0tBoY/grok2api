@@ -46,15 +46,14 @@ from app.api.v1.video_api import router as video_router
 from app.api.pages import router as pages_router
 from fastapi.staticfiles import StaticFiles
 
-# 初始化日志
-setup_logging(
-    level=os.getenv("LOG_LEVEL", "INFO"), json_console=False, file_logging=True
-)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
+    # 在 worker 启动阶段初始化日志，避免 Granian 下模块导入时绑定的标准流失效。
+    setup_logging(
+        level=os.getenv("LOG_LEVEL", "INFO"), json_console=False, file_logging=True
+    )
+
     # 1. 注册服务默认配置
     from app.core.config import config, register_defaults
     from app.services.grok.defaults import get_grok_defaults
