@@ -12,10 +12,14 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: SERVER_STORAGE_TYPE
-        value: local
+        value: redis
       - key: SERVER_STORAGE_URL
         value: ""
       - key: SERVER_HOST
         value: 0.0.0.0
+      - key: PUBLIC_ENABLED
+        value: true
+      - key: PUBLIC_KEY
+        sync: false
       - key: SERVER_PORT
         value: "8000"
